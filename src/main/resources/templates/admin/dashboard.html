@@ -1,0 +1,17 @@
+<div th:replace="layout :: layout">
+    <div th:fragment="content">
+        <h1>Bảng điều khiển</h1>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card p-3">Tổng sản phẩm: <strong th:text="${productCount}">0</strong></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3">Đơn hàng hôm nay: <strong th:text="${ordersToday}">0</strong></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3">Nhân viên: <strong th:text="${employeeCount}">0</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+

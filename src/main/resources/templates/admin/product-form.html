@@ -1,0 +1,25 @@
+<div th:replace="layout :: layout">
+    <div th:fragment="content">
+        <h2 th:text="${product.id} != null ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm'"></h2>
+        <form th:action="@{/admin/products/save}" method="post">
+            <input type="hidden" name="id" th:value="${product.id}" />
+            <div class="mb-3">
+                <label class="form-label">Tên</label>
+                <input class="form-control" name="name" th:value="${product.name}" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Danh mục</label>
+                <select class="form-select" name="categoryId">
+                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${product.category != null and product.category.id == c.id}"></option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Giá</label>
+                <input class="form-control" name="price" th:value="${product.price}" required />
+            </div>
+            <button class="btn btn-primary" type="submit">Lưu</button>
+            <a class="btn btn-secondary" th:href="@{/admin/products}">Hủy</a>
+        </form>
+    </div>
+</div>
+

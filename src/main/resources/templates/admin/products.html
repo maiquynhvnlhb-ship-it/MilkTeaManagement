@@ -1,0 +1,35 @@
+<div th:replace="layout :: layout">
+    <div th:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Sản phẩm</h2>
+            <a class="btn btn-success" th:href="@{/admin/products/new}">Thêm sản phẩm</a>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tên</th>
+                    <th>Danh mục</th>
+                    <th>Giá</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="p,iterStat : ${products}">
+                    <td th:text="${iterStat.index + 1}"></td>
+                    <td th:text="${p.name}"></td>
+                    <td th:text="${p.category != null ? p.category.name : ''}"></td>
+                    <td th:text="${p.price}"></td>
+                    <td th:text="${p.status != null ? p.status : ''}"></td>
+                    <td>
+                        <a class="btn btn-sm btn-primary" th:href="@{|/admin/products/${p.id}/edit|}">Sửa</a>
+                        <a class="btn btn-sm btn-danger" th:href="@{|/admin/products/${p.id}/delete|}">Xóa</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+

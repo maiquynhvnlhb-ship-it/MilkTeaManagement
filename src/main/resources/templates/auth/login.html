@@ -1,0 +1,26 @@
+<div th:replace="layout :: layout">
+    <div th:fragment="content">
+        <section class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Đăng nhập</div>
+                    <div class="card-body">
+                        <form th:action="@{/auth/login}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Tài khoản</label>
+                                <input type="text" class="form-control" id="username" name="username" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mật khẩu</label>
+                                <input type="password" class="form-control" id="password" name="password" required />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Đăng nhập</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
