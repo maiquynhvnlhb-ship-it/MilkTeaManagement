@@ -1,57 +1,453 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Đơn hàng của tôi</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Đơn hàng – Spring Milk Tea</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/css/app.css}" />
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}"/>
+    <style>
+        /* ── Detail Modal ── */
+        .order-detail-header { display:flex; gap:1rem; align-items:flex-start; }
+        .order-detail-badge  { font-size:.75rem; padding:.35em .7em; border-radius:50px; font-weight:600; }
+        .detail-table th     { font-weight:600; color:var(--text-muted,#6c757d); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+        .detail-table td     { font-size:.92rem; vertical-align:middle; }
+
+        /* ── Filter bar ── */
+        .filter-bar { display:flex; flex-wrap:wrap; gap:.6rem; align-items:flex-end; padding:1rem 1.25rem; background:var(--panel-bg,#fff); border-radius:12px; margin-bottom:1rem; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+        .filter-bar label { font-size:.78rem; font-weight:600; color:var(--text-muted,#6c757d); margin-bottom:.2rem; display:block; }
+        .filter-bar .form-control,
+        .filter-bar .form-select { font-size:.88rem; height:36px; }
+
+        /* ── Table enhancements ── */
+        .orders-table thead th { font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700; color:var(--text-muted,#6c757d); border-bottom:2px solid var(--border-color,#e9ecef); white-space:nowrap; }
+        .orders-table tbody tr { cursor:pointer; transition:background .15s; }
+        .orders-table tbody tr:hover { background:rgba(var(--bs-success-rgb),.06); }
+        .orders-table td { vertical-align:middle; font-size:.9rem; }
+        .badge-paid   { background:#d1fae5; color:#065f46; }
+        .badge-unpaid { background:#fee2e2; color:#991b1b; }
+
+        /* ── Stat cards ── */
+        .stat-row { display:flex; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; }
+        .stat-card { flex:1; min-width:140px; padding:.85rem 1.1rem; border-radius:12px; background:var(--panel-bg,#fff); box-shadow:0 1px 6px rgba(0,0,0,.06); }
+        .stat-card .stat-val { font-size:1.45rem; font-weight:700; line-height:1; }
+        .stat-card .stat-lbl { font-size:.74rem; color:var(--text-muted,#6c757d); margin-top:.25rem; }
+        .stat-green { border-left:4px solid #22c55e; }
+        .stat-blue  { border-left:4px solid #3b82f6; }
+        .stat-amber { border-left:4px solid #f59e0b; }
+        .stat-red   { border-left:4px solid #ef4444; }
+
+        /* ── Empty state ── */
+        .empty-state { text-align:center; padding:3rem 1rem; color:var(--text-muted,#6c757d); }
+        .empty-state i { font-size:3rem; opacity:.35; }
+    </style>
 </head>
 <body class="staff-shell">
-<div class="staff-page-simple">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2 class="mb-0">Đơn hàng của tôi</h2>
-            <div class="muted-small">Nhân viên: <span th:text="${username}">staff</span></div>
-        </div>
-        <div>
-            <a class="btn btn-outline-secondary" th:href="@{/staff/pos}">Quay lại POS</a>
-        </div>
-    </div>
+<div class="staff-app">
 
-    <div class="table-responsive panel-card">
-        <table class="table align-middle mb-0">
-            <thead>
-            <tr>
-                <th>Mã đơn</th>
-                <th>Trạng thái</th>
-                <th>Tổng</th>
-                <th>Ngày tạo</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="o : ${orders}">
-                <td th:text="${o.orderCode}">OD000001</td>
-                <td>
-                    <span class="badge"
-                          th:switch="${o.status.name()}">
-                        <span th:case="'NEW'" class="badge text-bg-info">NEW - nhận đơn</span>
-                        <span th:case="'PREPARING'" class="badge text-bg-warning">PREPARING - chuẩn bị</span>
-                        <span th:case="'READY'" class="badge text-bg-primary">READY - sẵn sàng</span>
-                        <span th:case="'PENDING'" class="badge text-bg-secondary">PENDING - đang giao</span>
-                        <span th:case="'COMPLETED'" class="badge text-bg-success">COMPLETED - đã hoàn tất</span>
-                        <span th:case="'CANCELED'" class="badge text-bg-danger">CANCELED - đã hủy</span>
-                        <span th:case="*" class="badge text-bg-dark" th:text="${o.status}">UNKNOWN</span>
-                    </span>
-                </td>
-                <td th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + 'đ'">105,000đ</td>
-                <td th:text="${o.createdAt}">2026-05-12</td>
-            </tr>
-            </tbody>
-        </table>
+    <!-- ░░ SIDEBAR ░░ -->
+    <aside class="staff-sidebar">
+        <div class="brand-block">
+            <div class="brand-logo">🍵</div>
+            <div>
+                <div class="brand-title">Spring Milk Tea</div>
+                <div class="brand-subtitle">Staff Portal</div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" th:href="@{/staff/pos}"><i class="bi bi-shop"></i><span>POS</span></a>
+            <a class="sidebar-link active" th:href="@{/staff/orders}"><i class="bi bi-receipt"></i><span>Đơn hàng</span></a>
+            <a class="sidebar-link" th:href="@{/staff/profile}"><i class="bi bi-person"></i><span>Hồ sơ</span></a>
+            <a class="sidebar-link" th:href="@{/dashboard}"><i class="bi bi-speedometer2"></i><span>Bảng điều khiển</span></a>
+            <form class="mt-3" th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-box-arrow-right me-1"></i>Đăng xuất</button>
+            </form>
+        </nav>
+    </aside>
+
+    <!-- ░░ MAIN ░░ -->
+    <main class="staff-main">
+        <!-- Topbar -->
+        <header class="staff-topbar">
+            <div>
+                <div class="clock" id="liveClock">--:--:--</div>
+                <div class="muted-small" id="liveDate">--</div>
+            </div>
+            <div class="topbar-center">
+                <div class="staff-avatar">SM</div>
+                <div>
+                    <div class="topbar-name" th:text="${username}">Nhân viên</div>
+                    <div class="muted-small">Đơn hàng của tôi</div>
+                </div>
+            </div>
+            <div class="topbar-actions">
+                <a th:href="@{/staff/pos}" class="topbar-action"><i class="bi bi-shop"></i><span>POS</span></a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button class="topbar-action border-0 bg-transparent" type="submit"><i class="bi bi-box-arrow-right"></i><span>Đăng xuất</span></button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Page title -->
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-receipt fs-4 text-success"></i>
+            <h2 class="mb-0 fs-4 fw-700">Đơn hàng của tôi</h2>
+        </div>
+
+        <!-- ── Stat cards ── -->
+        <div class="stat-row" id="statRow">
+            <div class="stat-card stat-green">
+                <div class="stat-val text-success" id="statTotal">–</div>
+                <div class="stat-lbl">Tổng đơn</div>
+            </div>
+            <div class="stat-card stat-blue">
+                <div class="stat-val text-primary" id="statPaid">–</div>
+                <div class="stat-lbl">Đã thanh toán</div>
+            </div>
+            <div class="stat-card stat-amber">
+                <div class="stat-val text-warning" id="statPending">–</div>
+                <div class="stat-lbl">Chưa thanh toán</div>
+            </div>
+            <div class="stat-card stat-red">
+                <div class="stat-val text-danger" id="statCanceled">–</div>
+                <div class="stat-lbl">Đã hủy</div>
+            </div>
+        </div>
+
+        <!-- ── Filter bar ── -->
+        <div class="filter-bar">
+            <div>
+                <label for="filterStatus">Trạng thái</label>
+                <select id="filterStatus" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="NEW">NEW – Nhận đơn</option>
+                    <option value="PREPARING">PREPARING – Chuẩn bị</option>
+                    <option value="READY">READY – Sẵn sàng</option>
+                    <option value="PENDING">PENDING – Đang giao</option>
+                    <option value="COMPLETED">COMPLETED – Hoàn tất</option>
+                    <option value="CANCELED">CANCELED – Đã hủy</option>
+                </select>
+            </div>
+            <div>
+                <label for="filterPaid">Thanh toán</label>
+                <select id="filterPaid" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="true">Đã thanh toán</option>
+                    <option value="false">Chưa thanh toán</option>
+                </select>
+            </div>
+            <div>
+                <label for="filterFrom">Từ ngày</label>
+                <input type="date" id="filterFrom" class="form-control"/>
+            </div>
+            <div>
+                <label for="filterTo">Đến ngày</label>
+                <input type="date" id="filterTo" class="form-control"/>
+            </div>
+            <div>
+                <label for="filterSearch">Tìm mã / khách</label>
+                <input type="text" id="filterSearch" class="form-control" placeholder="OD000001, Nguyễn..."/>
+            </div>
+            <div class="d-flex gap-2 align-items-end">
+                <button class="btn btn-success" id="btnApplyFilter" style="height:36px;font-size:.88rem;"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                <button class="btn btn-outline-secondary" id="btnResetFilter" style="height:36px;font-size:.88rem;"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+
+        <!-- ── Table ── -->
+        <div class="panel-card table-responsive">
+            <table class="table orders-table align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Trạng thái</th>
+                    <th>Thanh toán</th>
+                    <th>Tổng tiền</th>
+                    <th>Loại</th>
+                    <th>Ngày tạo</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="ordersBody">
+                <tr th:each="o,iter : ${orders}" class="js-order-row"
+                    th:attr="data-id=${o.id},
+                             data-status=${o.status},
+                             data-paid=${o.paid},
+                             data-date=${o.createdAt},
+                             data-code=${o.orderCode},
+                             data-customer=${o.customerName}">
+                    <td class="text-muted" th:text="${iter.count}">1</td>
+                    <td class="fw-semibold" th:text="${o.orderCode}">OD000001</td>
+                    <td>
+                        <div th:text="${o.customerName ?: '–'}">Khách lẻ</div>
+                        <div class="muted-small" th:text="${o.customerPhone ?: ''}"></div>
+                    </td>
+                    <td>
+                        <span th:switch="${o.status != null ? o.status.name() : ''}">
+                            <span th:case="'NEW'"       class="badge text-bg-info">NEW</span>
+                            <span th:case="'PREPARING'" class="badge text-bg-warning">PREPARING</span>
+                            <span th:case="'READY'"     class="badge text-bg-primary">READY</span>
+                            <span th:case="'PENDING'"   class="badge text-bg-secondary">PENDING</span>
+                            <span th:case="'COMPLETED'" class="badge text-bg-success">COMPLETED</span>
+                            <span th:case="'CANCELED'"  class="badge text-bg-danger">CANCELED</span>
+                            <span th:case="*"           class="badge text-bg-dark" th:text="${o.status}">–</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span th:if="${o.paid}"     class="badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã TT</span>
+                        <span th:unless="${o.paid}" class="badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa TT</span>
+                    </td>
+                    <td class="fw-semibold" th:text="${#numbers.formatDecimal(o.totalAmount,0,'COMMA',0,'POINT')}+'đ'">0đ</td>
+                    <td>
+                        <span th:if="${o.deliveryType != null}" th:switch="${o.deliveryType.name()}">
+                            <span th:case="'PICKUP'"   class="badge bg-light text-dark border"><i class="bi bi-shop me-1"></i>Tại chỗ</span>
+                            <span th:case="'DELIVERY'" class="badge bg-light text-dark border"><i class="bi bi-bicycle me-1"></i>Giao hàng</span>
+                            <span th:case="*"          class="badge bg-light text-dark border" th:text="${o.deliveryType}">–</span>
+                        </span>
+                        <span th:if="${o.deliveryType == null}" class="text-muted">–</span>
+                    </td>
+                    <td class="text-muted" th:text="${o.createdAt}">–</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-success js-view-detail" type="button"
+                                th:attr="data-id=${o.id}">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+                <!-- Empty fallback -->
+                <tr th:if="${#lists.isEmpty(orders)}" id="emptyRow">
+                    <td colspan="9">
+                        <div class="empty-state">
+                            <i class="bi bi-inbox d-block mb-2"></i>
+                            Chưa có đơn hàng nào.
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- filtered empty -->
+        <div class="empty-state d-none" id="filterEmpty">
+            <i class="bi bi-search d-block mb-2"></i>
+            Không tìm thấy đơn nào khớp với bộ lọc.
+        </div>
+
+    </main>
+</div>
+
+<!-- ░░ DETAIL MODAL ░░ -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content pos-modal">
+            <div class="modal-header border-0 pb-1">
+                <div class="order-detail-header">
+                    <div>
+                        <h5 class="modal-title mb-1" id="detailOrderCode">–</h5>
+                        <div class="d-flex gap-2 flex-wrap" id="detailBadges"></div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Info row -->
+                <div class="row g-3 mb-3" id="detailInfoRow">
+                    <div class="col-sm-4">
+                        <div class="muted-small mb-1">Khách hàng</div>
+                        <div class="fw-semibold" id="detailCustomer">–</div>
+                        <div class="muted-small" id="detailPhone"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="muted-small mb-1">Loại đơn</div>
+                        <div id="detailDelivery">–</div>
+                        <div class="muted-small" id="detailAddress"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="muted-small mb-1">Ngày tạo</div>
+                        <div id="detailDate">–</div>
+                    </div>
+                </div>
+
+                <!-- Items table -->
+                <div class="muted-small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">Chi tiết sản phẩm</div>
+                <div id="detailLoading" class="text-center py-3 text-muted small"><i class="bi bi-arrow-repeat spin me-1"></i>Đang tải...</div>
+                <table class="table detail-table align-middle d-none" id="detailTable">
+                    <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th class="text-center">SL</th>
+                        <th class="text-end">Đơn giá</th>
+                        <th class="text-end">Thành tiền</th>
+                    </tr>
+                    </thead>
+                    <tbody id="detailItems"></tbody>
+                    <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end fw-semibold">Tổng cộng</td>
+                        <td class="text-end fw-700 text-success" id="detailTotal">–</td>
+                    </tr>
+                    </tfoot>
+                </table>
+                <div id="detailError" class="alert alert-danger d-none small"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<style>@keyframes spin{to{transform:rotate(360deg)}}.spin{display:inline-block;animation:spin .8s linear infinite}</style>
+<script>
+    /* ── Clock ── */
+    (function clock(){
+        const el=document.getElementById('liveClock'), de=document.getElementById('liveDate');
+        const tick=()=>{
+            const n=new Date();
+            if(el) el.textContent=n.toLocaleTimeString('vi-VN');
+            if(de) de.textContent=n.toLocaleDateString('vi-VN',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
+        };
+        tick(); setInterval(tick,1000);
+    })();
+
+    /* ── Stats ── */
+    (function stats(){
+        const rows=[...document.querySelectorAll('.js-order-row')];
+        document.getElementById('statTotal').textContent=rows.length;
+        document.getElementById('statPaid').textContent=rows.filter(r=>r.dataset.paid==='true').length;
+        document.getElementById('statPending').textContent=rows.filter(r=>r.dataset.paid==='false'&&r.dataset.status!=='CANCELED').length;
+        document.getElementById('statCanceled').textContent=rows.filter(r=>r.dataset.status==='CANCELED').length;
+    })();
+
+    /* ── Filter ── */
+    const filterStatus=document.getElementById('filterStatus');
+    const filterPaid=document.getElementById('filterPaid');
+    const filterFrom=document.getElementById('filterFrom');
+    const filterTo=document.getElementById('filterTo');
+    const filterSearch=document.getElementById('filterSearch');
+    const filterEmpty=document.getElementById('filterEmpty');
+
+    function applyFilter(){
+        const status=filterStatus.value;
+        const paid=filterPaid.value;
+        const from=filterFrom.value;
+        const to=filterTo.value;
+        const search=filterSearch.value.trim().toLowerCase();
+        let visible=0;
+        document.querySelectorAll('.js-order-row').forEach(row=>{
+            let show=true;
+            if(status && row.dataset.status!==status) show=false;
+            if(paid!=='' && row.dataset.paid!==paid) show=false;
+            if(from && row.dataset.date && row.dataset.date.substring(0,10)<from) show=false;
+            if(to   && row.dataset.date && row.dataset.date.substring(0,10)>to)   show=false;
+            if(search){
+                const code=(row.dataset.code||'').toLowerCase();
+                const cust=(row.dataset.customer||'').toLowerCase();
+                if(!code.includes(search)&&!cust.includes(search)) show=false;
+            }
+            row.style.display=show?'':'none';
+            if(show) visible++;
+        });
+        filterEmpty.classList.toggle('d-none', visible>0);
+    }
+
+    document.getElementById('btnApplyFilter').addEventListener('click', applyFilter);
+    document.getElementById('btnResetFilter').addEventListener('click',()=>{
+        filterStatus.value=''; filterPaid.value=''; filterFrom.value=''; filterTo.value=''; filterSearch.value='';
+        applyFilter();
+    });
+    filterSearch.addEventListener('input', applyFilter);
+
+    /* ── Detail Modal ── */
+    const detailModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal'));
+    const apiBase='/staff/pos/api';
+
+    function fmt(n){return new Intl.NumberFormat('vi-VN').format(n);}
+
+    function statusBadgeHtml(status){
+        const map={NEW:'info',PREPARING:'warning',READY:'primary',PENDING:'secondary',COMPLETED:'success',CANCELED:'danger'};
+        const cls=map[status]||'dark';
+        return `<span class="badge text-bg-${cls}">${status}</span>`;
+    }
+
+    async function openDetail(orderId){
+        // reset
+        document.getElementById('detailOrderCode').textContent='Đang tải…';
+        document.getElementById('detailBadges').innerHTML='';
+        document.getElementById('detailCustomer').textContent='–';
+        document.getElementById('detailPhone').textContent='';
+        document.getElementById('detailDelivery').textContent='–';
+        document.getElementById('detailAddress').textContent='';
+        document.getElementById('detailDate').textContent='–';
+        document.getElementById('detailItems').innerHTML='';
+        document.getElementById('detailTotal').textContent='–';
+        document.getElementById('detailLoading').classList.remove('d-none');
+        document.getElementById('detailTable').classList.add('d-none');
+        document.getElementById('detailError').classList.add('d-none');
+        detailModal.show();
+
+        try{
+            const res=await fetch(`${apiBase}/orders/${orderId}`,{credentials:'same-origin'});
+            if(!res.ok) throw new Error('Không tải được chi tiết đơn ('+res.status+')');
+            const o=await res.json();
+
+            document.getElementById('detailOrderCode').textContent=o.orderCode||('Đơn #'+orderId);
+            const paidBadge=o.paid
+                ? '<span class="badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>'
+                : '<span class="badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
+            document.getElementById('detailBadges').innerHTML=statusBadgeHtml(o.status)+' '+paidBadge;
+            document.getElementById('detailCustomer').textContent=o.customerName||'Khách lẻ';
+            document.getElementById('detailPhone').textContent=o.customerPhone||'';
+            document.getElementById('detailDelivery').textContent=o.deliveryType==='DELIVERY'?'🚲 Giao hàng':'🏪 Tại chỗ';
+            document.getElementById('detailAddress').textContent=o.deliveryAddress||'';
+            document.getElementById('detailDate').textContent=o.createdAt||'–';
+
+            const tbody=document.getElementById('detailItems');
+            tbody.innerHTML='';
+            let total=0;
+            (o.items||[]).forEach(item=>{
+                const toppingText=(item.toppings||[]).map(t=>`${t.quantity}× ${t.name}`).join(', ');
+                const lineTotal=(item.unitPrice||item.price||0)*item.quantity;
+                total+=lineTotal;
+                const tr=document.createElement('tr');
+                tr.innerHTML=`
+                    <td>
+                        <div class="fw-semibold">${item.productName||('SP-'+item.productId)}</div>
+                        ${toppingText?`<div class="muted-small">Topping: ${toppingText}</div>`:''}
+                    </td>
+                    <td class="text-center">${item.quantity}</td>
+                    <td class="text-end">${fmt(item.unitPrice||item.price||0)}đ</td>
+                    <td class="text-end fw-semibold">${fmt(lineTotal)}đ</td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('detailTotal').textContent=fmt(o.totalAmount||total)+'đ';
+            document.getElementById('detailLoading').classList.add('d-none');
+            document.getElementById('detailTable').classList.remove('d-none');
+        }catch(err){
+            document.getElementById('detailLoading').classList.add('d-none');
+            const errEl=document.getElementById('detailError');
+            errEl.textContent=err.message;
+            errEl.classList.remove('d-none');
+            document.getElementById('detailOrderCode').textContent='Lỗi';
+        }
+    }
+
+    document.querySelectorAll('.js-view-detail').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+            e.stopPropagation();
+            openDetail(btn.dataset.id);
+        });
+    });
+    document.querySelectorAll('.js-order-row').forEach(row=>{
+        row.addEventListener('click',()=>openDetail(row.dataset.id));
+    });
+</script>
 </body>
 </html>
-

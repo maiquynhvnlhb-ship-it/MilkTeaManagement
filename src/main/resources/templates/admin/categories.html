@@ -1,21 +1,66 @@
 <!DOCTYPE html>
-<div th:replace="~{layout :: content}">
-    <h2>Danh mục</h2>
-    <a class="btn btn-success mb-3" th:href="@{/admin/categories/new}">Thêm danh mục</a>
-    <table class="table table-striped">
-        <thead>
-            <tr><th>#</th><th>Tên</th><th>Mô tả</th><th>Hành động</th></tr>
-        </thead>
-        <tbody>
-            <tr th:each="c,iterStat : ${categories}">
-                <td th:text="${iterStat.index + 1}"></td>
-                <td th:text="${c.name}"></td>
-                <td th:text="${c.description}"></td>
-                <td>
-                    <a class="btn btn-sm btn-primary" th:href="@{|/admin/categories/${c.id}/edit|}">Sửa</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:replace="~{admin/admin-layout :: layout}" th:with="title='Danh mục – Admin', pageTitle='Quản lý Danh mục'">
+    <div th:fragment="content">
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h5 class="admin-card-title">Danh sách Danh mục</h5>
+                        <a class="btn btn-primary btn-sm" th:href="@{/admin/categories/new}"><i class="bi bi-plus-lg me-1"></i>Thêm danh mục</a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table mb-0 table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th width="5%">ID</th>
+                                    <th width="30%">Tên danh mục</th>
+                                    <th>Mô tả</th>
+                                    <th>Trạng thái</th>
+                                    <th width="15%" class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="c : ${categories}">
+                                    <td class="text-muted" th:text="${c.id}">1</td>
+                                    <td class="fw-semibold text-primary" th:text="${c.name}">Trà sữa</td>
+                                    <td class="text-muted small" th:text="${c.description}">Mô tả ngắn</td>
+                                    <td>
+                                        <span th:if="${c.active}" class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Hoạt động</span>
+                                        <span th:unless="${c.active}" class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Đã ẩn</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-outline-primary" th:href="@{|/admin/categories/${c.id}/edit|}"><i class="bi bi-pencil me-1"></i>Sửa</a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(categories)}">
+                                    <td colspan="5" class="text-center py-4 text-muted">Chưa có danh mục nào.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="admin-card bg-primary bg-opacity-10 border-primary border-opacity-25">
+                    <div class="p-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="bi bi-info-circle fs-4"></i>
+                            </div>
+                            <h5 class="mb-0 fw-bold text-primary">Thông tin</h5>
+                        </div>
+                        <p class="text-muted small mb-0">Danh mục giúp phân loại đồ uống và topping trên Màn hình Bán hàng (POS) của nhân viên. Hãy đặt tên danh mục ngắn gọn và dễ hiểu để nhân viên thao tác nhanh hơn.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+    </div>
+</div>
+</body>
+</html>

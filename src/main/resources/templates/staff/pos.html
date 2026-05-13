@@ -6,6 +6,7 @@
     <title>Staff POS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}" />
     <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}" />
@@ -40,7 +41,7 @@
                 <div class="muted-small">May 12, 2026</div>
             </div>
             <div class="topbar-center">
-                <div class="staff-avatar">SM</div>
+                <div class="staff-avatar">Staff</div>
                 <div>
                     <div class="topbar-name" th:text="${employee != null ? employee.fullName : username}">Nguyễn Thị Mai</div>
                     <div class="muted-small">Ca: Tối</div>
@@ -122,13 +123,13 @@
                 </div>
 
                 <div class="cart-actions">
-                    <button id="btnCreateNewOrder" class="btn btn-outline-success" type="button">NEW - nhận đơn</button>
-                    <button id="btnCancelOrder" class="btn btn-outline-danger" type="button">CANCELED - đã hủy</button>
-                    <button id="btnSendKitchen" class="btn btn-outline-success" type="button">PREPARING - chuẩn bị</button>
-                    <button id="btnMarkReady" class="btn btn-outline-primary" type="button">READY - sẵn sàng</button>
-                    <button id="btnMarkPending" class="btn btn-outline-warning" type="button">PENDING - đang giao</button>
+                    <button id="btnCreateNewOrder" class="btn btn-outline-success" type="button">Nhận đơn</button>
+                    <button id="btnCancelOrder" class="btn btn-outline-danger" type="button">Hủy</button>
+                    <button id="btnSendKitchen" class="btn btn-outline-success" type="button">Chuẩn bị</button>
+                    <button id="btnMarkReady" class="btn btn-outline-primary" type="button">Sẵn sàng</button>
+                    <button id="btnMarkPending" class="btn btn-outline-warning" type="button">Đang giao</button>
                     <button id="btnCheckout" class="btn btn-dark" type="button">THANH TOÁN</button>
-                    <button id="btnCompleteOrder" class="btn btn-primary" type="button">COMPLETED - đã hoàn tất</button>
+                    <button id="btnCompleteOrder" class="btn btn-primary" type="button">Đã hoàn tất</button>
                 </div>
 
                 <div id="posMessage" class="mt-3 small"></div>
@@ -274,41 +275,61 @@
 
     function updateActionButtons() {
         const disabled = cart.size === 0;
+
+        // Các trạng thái cơ bản khi chưa chọn đơn hoặc giỏ hàng trống
         btnCreateNewOrder.disabled = disabled || Boolean(currentLoadedOrder);
-        btnSendKitchen.disabled = disabled;
-        btnMarkReady.disabled = disabled;
-        btnMarkPending.disabled = disabled;
         btnCheckout.disabled = disabled;
-        btnCompleteOrder.disabled = disabled;
         discountInput.disabled = Boolean(currentLoadedOrder);
 
+        // Cập nhật trạng thái các nút thêm sản phẩm
         document.querySelectorAll('.js-add-product').forEach(btn => {
             btn.disabled = Boolean(currentLoadedOrder);
             btn.classList.toggle('disabled', Boolean(currentLoadedOrder));
         });
 
+        // TRƯỜNG HỢP: Chưa có đơn hàng nào được chọn/tải lên
         if (!currentLoadedOrder) {
             btnCancelOrder.disabled = false;
-            btnCancelOrder.textContent = 'CANCELED - đã hủy';
+            btnCancelOrder.textContent = 'Hủy';
             btnSendKitchen.disabled = true;
             btnMarkReady.disabled = true;
             btnMarkPending.disabled = true;
             btnCompleteOrder.disabled = true;
+            btnCompleteOrder.classList.remove('btn-primary');
+            btnCompleteOrder.classList.add('btn-outline-primary');
             return;
         }
 
+        // Lấy thông tin trạng thái và thanh toán từ đơn hàng hiện tại
         const status = String(currentLoadedOrder.status || '').toUpperCase();
         const isPaid = Boolean(currentLoadedOrder.paid);
 
+        // 1. Nút Thanh toán: Vô hiệu hóa nếu đã trả tiền hoặc trạng thái không phù hợp
         btnCheckout.disabled = isPaid || !['NEW', 'PENDING', 'READY', 'PREPARING'].includes(status);
-        btnCheckout.textContent = 'THANH TOÁN ĐƠN';
-        btnSendKitchen.disabled = !['NEW', 'PENDING'].includes(status);
+        btnCheckout.textContent = isPaid ? 'ĐÃ THANH TOÁN' : 'THANH TOÁN';
+
+        // 2. Logic các nút quy trình (Workflow)
+        btnSendKitchen.disabled = status !== 'NEW';
         btnMarkReady.disabled = status !== 'PREPARING';
         btnMarkPending.disabled = status !== 'READY';
-        btnCompleteOrder.disabled = !Boolean(currentLoadedOrder.canComplete);
 
-        btnCancelOrder.disabled = status !== 'NEW';
-        btnCancelOrder.textContent = status === 'NEW' ? 'CANCELED - đã hủy' : 'CANCELED - đã hủy';
+        // 3. Nút Hoàn tất (LOGIC MỚI):
+        // Mở khóa nếu đơn đã THANH TOÁN hoặc hệ thống xác nhận canComplete (ví dụ đơn đã giao xong)
+        const canFinish = isPaid || Boolean(currentLoadedOrder.canComplete);
+        btnCompleteOrder.disabled = !canFinish;
+
+        // Tùy chỉnh màu sắc nút Hoàn tất để làm nổi bật khi có thể nhấn
+        if (canFinish) {
+            btnCompleteOrder.classList.remove('btn-outline-primary');
+            btnCompleteOrder.classList.add('btn-primary'); // Chuyển sang màu xanh đậm
+        } else {
+            btnCompleteOrder.classList.add('btn-outline-primary');
+            btnCompleteOrder.classList.remove('btn-primary');
+        }
+
+        // 4. Nút Hủy: Chỉ cho phép hủy khi đơn còn mới (NEW) và chưa thanh toán
+        btnCancelOrder.disabled = (status !== 'NEW' || isPaid);
+        btnCancelOrder.textContent = 'Hủy đơn';
     }
 
     function persistCart() {
@@ -592,6 +613,54 @@
         }
     }
 
+    function renderRecentOrders(orders) {
+        const container = document.querySelector('.recent-order-list');
+        if (!container) return;
+
+        container.innerHTML = ''; // Xóa sạch danh sách hiện tại
+
+        if (orders.length === 0) {
+            container.innerHTML = '<div class="p-3 text-muted small">Không có đơn hàng nào chờ xử lý.</div>';
+            return;
+        }
+
+        orders.forEach(o => {
+            // Chỉ hiện những đơn chưa Hoàn tất hoặc Hủy
+            if (o.status !== 'COMPLETED' && o.status !== 'CANCELED') {
+                const div = document.createElement('div');
+                div.className = 'recent-order js-recent-order';
+                div.setAttribute('data-order-id', o.id);
+
+                div.innerHTML = `
+                <div class="p-2 clickable-recent-order">
+                    <div>
+                        <div class="fw-semibold">${o.orderCode}</div>
+                        <div class="muted-small">${o.status}</div>
+                    </div>
+                    <div class="fw-semibold">${formatMoney(o.totalAmount)}đ</div>
+                </div>
+            `;
+
+                // Gán lại sự kiện click để nhân viên có thể chọn đơn sau khi reload
+                div.addEventListener('click', () => loadOrderDetails(o.id));
+                container.appendChild(div);
+            }
+        });
+    }
+
+    async function fetchRecentOrders() {
+        try {
+            // Gọi lại danh sách từ server (Dùng endpoint /me hoặc endpoint trả về recentOrders)
+            const res = await fetch(`${apiBase}/orders/me`, { credentials: 'same-origin' });
+            if (!res.ok) throw new Error('Không thể tải lại danh sách đơn hàng');
+
+            const orders = await res.json();
+            renderRecentOrders(orders); // Gọi hàm render đã viết ở bước 1
+        } catch (err) {
+            console.error("Lỗi reload danh sách:", err);
+        }
+    }
+
     function findProductMeta(productId) {
         const el = document.querySelector(`.js-product[data-product-id="${productId}"]`);
         if (!el) return null;
@@ -723,48 +792,95 @@
         try {
             if (cart.size === 0) throw new Error('Vui lòng thêm sản phẩm vào đơn.');
             if (currentLoadedOrder) throw new Error('Đã có đơn đang mở.');
+
             const order = await createOrder();
-            currentLoadedOrder = { ...order, paid: false, canComplete: false };
-            showMessage(`Đã nhận đơn NEW: ${order.orderCode}`, 'success');
-            updateActionButtons();
+
+            // ⚠️ Quan trọng: lấy đúng id
+            const orderId = order.orderId || order.id;
+
+            // 👉 Lưu vào localStorage để giữ trạng thái sau reload
+            localStorage.setItem('lastCreatedOrderId', orderId);
+
+            // 👉 reload toàn trang
+            window.location.href = '/staff/pos';
+
         } catch (err) {
             showMessage(err.message, 'danger');
         }
     });
 
-    document.getElementById('btnCancelOrder').addEventListener('click', () => {
-        if (!currentLoadedOrder) {
-            resetOrder();
-            showMessage('Đơn nháp đã được huỷ.', 'danger');
-            return;
-        }
+    document.getElementById('btnCancelOrder').addEventListener('click', async () => {
+        try {
+            // 1. Trường hợp hủy đơn nháp (chưa lưu vào DB)
+            if (!currentLoadedOrder) {
+                resetOrder();
+                Swal.fire({
+                    title: 'Đã xóa nháp',
+                    text: 'Dữ liệu trên màn hình đã được làm mới.',
+                    icon: 'info',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                return;
+            }
 
-        const status = String(currentLoadedOrder.status || '').toUpperCase();
-        if (status !== 'NEW') {
-            showMessage('Chỉ đơn NEW mới được hủy.', 'warning');
-            return;
-        }
+            // 2. Kiểm tra trạng thái đơn hàng (Backend thường chỉ cho hủy đơn NEW)
+            const status = String(currentLoadedOrder.status || '').toUpperCase();
+            const isPaid = Boolean(currentLoadedOrder.paid);
 
-        fetch(`${apiBase}/orders/${currentLoadedOrder.orderId}/cancel`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(csrfHeader && csrfToken ? { [csrfHeader]: csrfToken } : {})
-            },
-            credentials: 'same-origin'
-        }).then(async res => {
+            if (status !== 'NEW' || isPaid) {
+                throw new Error('Chỉ đơn hàng MỚI và CHƯA THANH TOÁN mới có thể hủy.');
+            }
+
+            // 3. Hiển thị xác nhận đẹp với SweetAlert2
+            const result = await Swal.fire({
+                title: 'Xác nhận hủy đơn?',
+                text: `Bạn có chắc chắn muốn hủy đơn hàng ${currentLoadedOrder.orderCode}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đúng, hủy đơn!',
+                cancelButtonText: 'Quay lại'
+            });
+
+            if (!result.isConfirmed) return;
+
+            // 4. Gọi API Hủy
+            const res = await fetch(`${apiBase}/orders/${currentLoadedOrder.orderId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(csrfHeader && csrfToken ? { [csrfHeader]: csrfToken } : {})
+                },
+                credentials: 'same-origin'
+            });
+
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(text || 'Không thể hủy đơn');
             }
-            return res.json();
-        }).then(() => {
-            showMessage('Đơn đã được hủy.', 'danger');
-            syncLoadedOrderCardStatus('CANCELED - đã hủy');
-            currentLoadedOrder = null;
-            document.querySelectorAll('.js-recent-order').forEach(el => el.classList.remove('active-recent'));
-            resetOrder();
-        }).catch(err => showMessage(err.message, 'danger'));
+
+            // 5. Thông báo thành công
+            await Swal.fire({
+                title: 'Đã hủy!',
+                text: `Đơn hàng ${currentLoadedOrder.orderCode} đã được hủy bỏ.`,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // 6. Tải lại danh sách đơn hàng để cập nhật giao diện
+            if (typeof fetchRecentOrders === 'function') {
+                await fetchRecentOrders();
+            }
+
+            // 7. Dọn dẹp trạng thái hiện tại
+            window.location.href = '/staff/pos';
+
+        } catch (err) {
+            Swal.fire('Thất bại', err.message, 'error');
+        }
     });
 
     document.getElementById('btnSendKitchen').addEventListener('click', async () => {
@@ -836,12 +952,34 @@
     document.getElementById('btnCheckout').addEventListener('click', async () => {
         try {
             if (cart.size === 0) throw new Error('Vui lòng thêm sản phẩm vào đơn.');
+
+            const confirmMsg = currentLoadedOrder
+                ? `Xác nhận thanh toán cho đơn hàng ${currentLoadedOrder.orderCode}?`
+                : "Xác nhận thanh toán và tạo đơn hàng mới?";
+
+            // Sử dụng SweetAlert2 để xác nhận
+            const result = await Swal.fire({
+                title: 'Xác nhận thanh toán?',
+                text: confirmMsg,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!result.isConfirmed) return;
+
             if (currentLoadedOrder) {
                 const paid = await checkoutOrder(currentLoadedOrder.orderId);
                 currentLoadedOrder.paid = true;
+
                 currentLoadedOrder.canComplete = String(currentLoadedOrder.status || '').toUpperCase() === 'READY';
-                showMessage(`Thanh toán thành công: ${paid.orderCode}`, 'success');
-                syncLoadedOrderCardStatus(`${String(currentLoadedOrder.status || '').toUpperCase()} - đã thanh toán`);
+                await fetchRecentOrders();
+
+                Swal.fire('Thành công!', `Đơn ${paid.orderCode} đã được thanh toán.`, 'success');
+                syncLoadedOrderCardStatus(`${String(currentLoadedOrder.status || '').toUpperCase()} - Đã trả tiền`);
                 updateActionButtons();
                 renderCart();
                 return;
@@ -849,17 +987,34 @@
 
             const order = await createOrder();
             const paid = await checkoutOrder(order.orderId);
-            showMessage(`Thanh toán thành công: ${paid.orderCode}`, 'success');
+            Swal.fire('Thành công!', `Đã tạo và thanh toán đơn: ${paid.orderCode}`, 'success');
             resetOrder();
         } catch (err) {
-            showMessage(err.message, 'danger');
+            Swal.fire('Lỗi!', err.message, 'error');
         }
     });
 
     btnCompleteOrder.addEventListener('click', async () => {
         try {
             if (!currentLoadedOrder) throw new Error('Không có đơn đang mở.');
-            if (!currentLoadedOrder.canComplete) throw new Error('Đơn chưa đủ điều kiện hoàn tất.');
+
+            const isPaid = Boolean(currentLoadedOrder.paid);
+            if (!isPaid && !currentLoadedOrder.canComplete) {
+                throw new Error('Đơn hàng cần được thanh toán trước khi hoàn tất.');
+            }
+
+            const result = await Swal.fire({
+                title: 'Xác nhận hoàn tất',
+                text: `Hoàn tất đơn hàng ${currentLoadedOrder.orderCode}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-check-circle"></i> Xác nhận',
+                cancelButtonText: 'Quay lại'
+            });
+
+            if (!result.isConfirmed) return;
 
             const res = await fetch(`${apiBase}/orders/${currentLoadedOrder.orderId}/complete`, {
                 method: 'POST',
@@ -869,20 +1024,29 @@
                 },
                 credentials: 'same-origin'
             });
+
             if (!res.ok) {
                 const text = await res.text();
                 throw new Error(text || 'Không thể hoàn tất đơn');
             }
+
             const done = await res.json();
-            showMessage(`Đã hoàn tất đơn: ${done.orderCode}`, 'success');
-            syncLoadedOrderCardStatus('COMPLETED - đã hoàn tất');
-            currentLoadedOrder = null;
-            document.querySelectorAll('.js-recent-order').forEach(el => el.classList.remove('active-recent'));
-            resetOrder();
+
+            window.location.href = '/staff/pos';
+
+            Swal.fire({
+                title: 'Thành công!',
+                text: `Đơn hàng ${done.orderCode} đã hoàn thành.`,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
         } catch (err) {
-            showMessage(err.message, 'danger');
+            Swal.fire('Lỗi', err.message, 'error');
         }
     });
+    localStorage.removeItem(storageKey);
 
     loadCart();
     renderCart();
@@ -898,6 +1062,24 @@
 
     // call after DOM ready actions
     attachRecentOrderHandlers();
+    window.addEventListener('load', () => {
+        const lastId = localStorage.getItem('lastCreatedOrderId');
+        if (lastId) {
+            localStorage.removeItem('lastCreatedOrderId');
+
+            // delay nhẹ để đảm bảo DOM đã render xong
+            setTimeout(() => {
+                loadOrderDetails(lastId);
+            }, 300);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const activeCategory = document.querySelector('.js-category.active');
+        if (activeCategory) {
+            activeCategory.click(); // 👈 trigger filter
+        }
+    });
 </script>
 </body>
 </html>

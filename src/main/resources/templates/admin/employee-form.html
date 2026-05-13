@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:replace="~{admin/admin-layout :: layout}" th:with="title=${employee.id != null ? 'Chỉnh sửa Nhân viên' : 'Thêm Nhân viên Mới'}, pageTitle='Quản lý Nhân viên'">
+    <div th:fragment="content">
+        
+        <form th:action="@{/admin/employees/save}" method="post">
+            <input type="hidden" name="id" th:value="${employee.id}" />
+            
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="admin-card h-100">
+                        <div class="admin-card-header">
+                            <h5 class="admin-card-title"><i class="bi bi-person-vcard me-2 text-primary"></i>Thông tin cá nhân</h5>
+                        </div>
+                        <div class="p-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="fullName" th:value="${employee.fullName}" required placeholder="VD: Nguyễn Văn A" />
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="phone" th:value="${employee.phone}" required placeholder="0912345678" />
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Tình trạng làm việc</label>
+                                <select class="form-select" name="status">
+                                    <option value="WORKING" th:selected="${employee.status != null and employee.status.name() == 'WORKING'}">Đang làm việc</option>
+                                    <option value="QUIT" th:selected="${employee.status != null and employee.status.name() == 'QUIT'}">Nghỉ việc</option>
+                                    <option value="ON_LEAVE" th:selected="${employee.status != null and employee.status.name() == 'ON_LEAVE'}">Nghỉ phép</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="admin-card h-100">
+                        <div class="admin-card-header">
+                            <h5 class="admin-card-title"><i class="bi bi-shield-lock me-2 text-primary"></i>Tài khoản đăng nhập</h5>
+                        </div>
+                        <div class="p-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Tên đăng nhập <span class="text-danger" th:if="${employee.id == null}">*</span></label>
+                                <input type="text" class="form-control" name="username" th:value="${userAccount != null ? userAccount.username : ''}" th:readonly="${employee.id != null}" th:required="${employee.id == null}" placeholder="VD: nguyenva" />
+                                <div th:if="${employee.id != null}" class="form-text">Tên đăng nhập không thể thay đổi sau khi tạo.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase" th:text="${employee.id != null ? 'Mật khẩu mới (Bỏ trống nếu không đổi)' : 'Mật khẩu *'}">Mật khẩu</label>
+                                <input type="password" class="form-control" name="rawPassword" th:required="${employee.id == null}" placeholder="Nhập mật khẩu..." />
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Phân quyền</label>
+                                <select class="form-select" name="role">
+                                    <option value="STAFF" th:selected="${userAccount != null and userAccount.role != null and userAccount.role.name() == 'STAFF'}">Nhân viên bán hàng (STAFF)</option>
+                                    <option value="ADMIN" th:selected="${userAccount != null and userAccount.role != null and userAccount.role.name() == 'ADMIN'}">Quản trị viên (ADMIN)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="isEnabled" name="enabled" value="true" th:checked="${userAccount == null or userAccount.enabled}">
+                                    <label class="form-check-label fw-semibold" for="isEnabled">Cho phép đăng nhập (Tài khoản kích hoạt)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-end">
+                <a class="btn btn-light border me-2" th:href="@{/admin/employees}">Hủy bỏ</a>
+                <button class="btn btn-primary px-4" type="submit"><i class="bi bi-save me-1"></i>Lưu thông tin</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:replace="~{admin/admin-layout :: layout}" th:with="title=${category.id != null ? 'Chỉnh sửa Danh mục' : 'Thêm Danh mục Mới'}, pageTitle='Quản lý Danh mục'">
+    <div th:fragment="content">
+        
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h5 class="admin-card-title" th:text="${category.id != null ? 'Chỉnh sửa Danh mục' : 'Thêm Danh mục Mới'}">Thêm Danh mục Mới</h5>
+                    </div>
+                    <div class="p-4">
+                        <form th:action="@{/admin/categories/save}" method="post">
+                            <input type="hidden" name="id" th:value="${category.id}" />
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Tên danh mục <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name" th:value="${category.name}" required placeholder="VD: Trà trái cây" />
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold text-muted small text-uppercase">Mô tả</label>
+                                <textarea class="form-control" name="description" rows="3" th:text="${category.description}" placeholder="Mô tả ngắn gọn..."></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="isActive" name="active" th:checked="${category.active}">
+                                    <label class="form-check-label fw-semibold" for="isActive">Hoạt động (Hiển thị trên POS)</label>
+                                </div>
+                            </div>
+                            
+                            <hr class="text-muted opacity-25">
+                            
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <a class="btn btn-light border" th:href="@{/admin/categories}">Hủy bỏ</a>
+                                <button class="btn btn-primary px-4" type="submit"><i class="bi bi-save me-1"></i>Lưu danh mục</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

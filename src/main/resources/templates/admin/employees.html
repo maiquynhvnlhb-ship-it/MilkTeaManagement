@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:replace="~{admin/admin-layout :: layout}" th:with="title='Nhân viên – Admin', pageTitle='Quản lý Nhân viên'">
+    <div th:fragment="content">
+        
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">Danh sách Nhân viên</h5>
+                <a class="btn btn-primary btn-sm" th:href="@{/admin/employees/new}"><i class="bi bi-person-plus me-1"></i>Thêm nhân viên</a>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table mb-0 table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th width="5%">ID</th>
+                            <th>Họ và Tên</th>
+                            <th>Tài khoản</th>
+                            <th>Số điện thoại</th>
+                            <th>Phân quyền</th>
+                            <th>Trạng thái</th>
+                            <th width="15%" class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="e : ${employees}">
+                            <td class="text-muted" th:text="${e.id}">1</td>
+                            <td class="fw-semibold" th:text="${e.fullName}">Nguyễn Văn A</td>
+                            <td th:text="${e.userAccount != null ? e.userAccount.username : 'N/A'}">admin</td>
+                            <td th:text="${e.phone}">0123456789</td>
+                            <td>
+                                <span th:if="${e.userAccount != null}" class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle" th:text="${e.userAccount.role}">ROLE</span>
+                                <span th:unless="${e.userAccount != null}" class="text-muted">N/A</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span th:if="${e.status != null and e.status.name() == 'WORKING'}" class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Đang làm việc</span>
+                                    <span th:if="${e.status != null and e.status.name() != 'WORKING'}" class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Nghỉ việc/Phép</span>
+                                    
+                                    <span th:if="${e.userAccount != null and !e.userAccount.enabled}" class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle" title="Tài khoản bị khóa"><i class="bi bi-lock-fill"></i></span>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" th:href="@{|/admin/employees/${e.id}/edit|}"><i class="bi bi-pencil me-1"></i>Chỉnh sửa</a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(employees)}">
+                            <td colspan="7" class="text-center py-4 text-muted">Chưa có nhân viên nào.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

@@ -1,17 +1,84 @@
-<div th:replace="layout :: layout">
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Thêm layout -->
+</head>
+<body>
+<div th:replace="~{admin/admin-layout :: layout}" th:with="title='Dashboard – Admin', pageTitle='Tổng quan hệ thống'">
     <div th:fragment="content">
-        <h1>Bảng điều khiển</h1>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card p-3">Tổng sản phẩm: <strong th:text="${productCount}">0</strong></div>
+        
+        <div class="row g-4 mb-4">
+            <!-- Metric Card 1 -->
+            <div class="col-md-3">
+                <div class="admin-card p-4 h-100" style="border-left: 4px solid #3b82f6;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-semibold text-uppercase small" style="letter-spacing: 0.5px;">Tổng Sản Phẩm</div>
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-cup-straw fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="mb-0 fw-bold" th:text="${productCount}">0</h2>
+                </div>
             </div>
-            <div class="col-md-4">
-                <div class="card p-3">Đơn hàng hôm nay: <strong th:text="${ordersToday}">0</strong></div>
+            
+            <!-- Metric Card 2 -->
+            <div class="col-md-3">
+                <div class="admin-card p-4 h-100" style="border-left: 4px solid #10b981;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-semibold text-uppercase small" style="letter-spacing: 0.5px;">Đơn hôm nay</div>
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-receipt fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="mb-0 fw-bold" th:text="${ordersToday}">0</h2>
+                </div>
             </div>
-            <div class="col-md-4">
-                <div class="card p-3">Nhân viên: <strong th:text="${employeeCount}">0</strong></div>
+            
+            <!-- Metric Card 3 -->
+            <div class="col-md-3">
+                <div class="admin-card p-4 h-100" style="border-left: 4px solid #f59e0b;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-semibold text-uppercase small" style="letter-spacing: 0.5px;">Doanh thu hôm nay</div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-cash-coin fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="mb-0 fw-bold"><span th:text="${#numbers.formatDecimal(revenueToday, 0, 'COMMA', 0, 'POINT')}">0</span>đ</h2>
+                </div>
+            </div>
+            
+            <!-- Metric Card 4 -->
+            <div class="col-md-3">
+                <div class="admin-card p-4 h-100" style="border-left: 4px solid #8b5cf6;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-semibold text-uppercase small" style="letter-spacing: 0.5px;">Nhân viên</div>
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-people fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="mb-0 fw-bold" th:text="${employeeCount}">0</h2>
+                </div>
             </div>
         </div>
+
+        <div class="row g-4">
+            <div class="col-md-12">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h5 class="admin-card-title">Hành động nhanh</h5>
+                    </div>
+                    <div class="p-4">
+                        <div class="d-flex gap-3">
+                            <a class="btn btn-primary" th:href="@{/admin/products/new}"><i class="bi bi-plus-circle me-1"></i>Thêm sản phẩm mới</a>
+                            <a class="btn btn-outline-secondary" th:href="@{/admin/categories/new}"><i class="bi bi-tag me-1"></i>Thêm danh mục</a>
+                            <a class="btn btn-outline-secondary" th:href="@{/admin/employees/new}"><i class="bi bi-person-plus me-1"></i>Thêm nhân viên</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
-
+</body>
+</html>

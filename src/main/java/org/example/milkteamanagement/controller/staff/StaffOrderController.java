@@ -56,6 +56,7 @@ public class StaffOrderController {
     private Map<String, Object> toOrderPayload(CustomerOrder order) {
         return Map.of(
                 "id", order.getId(),
+                "orderId", order.getId(),
                 "orderCode", order.getOrderCode(),
                 "status", order.getStatus(),
                 "total", order.getTotalAmount(),

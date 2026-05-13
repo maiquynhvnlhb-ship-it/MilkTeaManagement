@@ -442,7 +442,13 @@ body {
     align-items: center;
     justify-content: space-between;
 }
-
+/* Màu cho thẻ đơn hàng đang được chọn */
+.js-recent-order.active-recent {
+    background-color: #e8f5e9 !important; /* Màu xanh lá nhạt */
+    border: 2px solid #2e7d32 !important; /* Viền xanh đậm */
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
 .staff-page-simple {
     min-height: 100vh;
     padding: 20px;

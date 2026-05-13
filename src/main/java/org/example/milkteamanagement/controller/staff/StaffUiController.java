@@ -13,9 +13,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.example.milkteamanagement.entity.PaymentTransaction;
+import org.example.milkteamanagement.entity.enums.PaymentStatus;
+import org.example.milkteamanagement.repository.PaymentTransactionRepository;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/staff")
@@ -25,15 +30,18 @@ public class StaffUiController {
     private final OrderService orderService;
     private final UserAccountRepository userAccountRepository;
     private final EmployeeRepository employeeRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
 
     public StaffUiController(CatalogService catalogService,
                              OrderService orderService,
                              UserAccountRepository userAccountRepository,
-                             EmployeeRepository employeeRepository) {
+                             EmployeeRepository employeeRepository,
+                             PaymentTransactionRepository paymentTransactionRepository) {
         this.catalogService = catalogService;
         this.orderService = orderService;
         this.userAccountRepository = userAccountRepository;
         this.employeeRepository = employeeRepository;
+        this.paymentTransactionRepository = paymentTransactionRepository;
     }
 
     @GetMapping({"", "/", "/pos"})
@@ -64,8 +72,31 @@ public class StaffUiController {
     @GetMapping("/orders")
     public String orders(Authentication authentication, Model model) {
         String username = authentication != null ? authentication.getName() : "staff";
+        List<Map<String, Object>> mappedOrders = orderService.findByStaff(username).stream().map(order -> {
+            java.math.BigDecimal paidTotal = java.math.BigDecimal.ZERO;
+            List<PaymentTransaction> successPayments = paymentTransactionRepository.findByOrderAndStatus(order, PaymentStatus.SUCCESS);
+            for (PaymentTransaction pt : successPayments) {
+                if (pt.getPaidAmount() != null) {
+                    paidTotal = paidTotal.add(pt.getPaidAmount());
+                }
+            }
+            boolean paid = order.getTotalAmount() != null && paidTotal.compareTo(order.getTotalAmount()) >= 0;
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", order.getId());
+            map.put("orderCode", order.getOrderCode());
+            map.put("status", order.getStatus());
+            map.put("paid", paid);
+            map.put("totalAmount", order.getTotalAmount());
+            map.put("createdAt", order.getCreatedAt());
+            map.put("deliveryType", order.getDeliveryType());
+            map.put("customerName", order.getCustomer() != null ? order.getCustomer().getName() : null);
+            map.put("customerPhone", order.getCustomer() != null ? order.getCustomer().getPhone() : null);
+            return map;
+        }).toList();
+
         model.addAttribute("username", username);
-        model.addAttribute("orders", orderService.findByStaff(username));
+        model.addAttribute("orders", mappedOrders);
         model.addAttribute("activeMenu", "orders");
         return "staff/orders";
     }

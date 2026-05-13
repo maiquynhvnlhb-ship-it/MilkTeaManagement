@@ -256,22 +256,36 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse completeOrder(Long orderId, String actor) {
         CustomerOrder order = customerOrderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found: " + orderId));
-        if (order.getStatus() != OrderStatus.READY && order.getStatus() != OrderStatus.PENDING) {
-            throw new BadRequestException("Only READY or PENDING orders can be completed");
-        }
 
-        // require payment: sum of SUCCESS payments must be >= order total
-        List<PaymentTransaction> successPayments = paymentTransactionRepository.findByOrderAndStatus(order, org.example.milkteamanagement.entity.enums.PaymentStatus.SUCCESS);
+        // 1. Tính toán tổng số tiền đã thanh toán thành công
+        List<PaymentTransaction> successPayments = paymentTransactionRepository.findByOrderAndStatus(
+                order, org.example.milkteamanagement.entity.enums.PaymentStatus.SUCCESS);
+
         java.math.BigDecimal paidTotal = java.math.BigDecimal.ZERO;
         for (PaymentTransaction pt : successPayments) {
-            paidTotal = paidTotal.add(pt.getPaidAmount());
+            if (pt.getPaidAmount() != null) {
+                paidTotal = paidTotal.add(pt.getPaidAmount());
+            }
         }
-        if (paidTotal.compareTo(order.getTotalAmount()) < 0) {
-            throw new BadRequestException("Order cannot be completed until payment is received.");
+
+        // 2. Kiểm tra điều kiện thanh toán
+        boolean isPaid = paidTotal.compareTo(order.getTotalAmount()) >= 0;
+
+        // 3. LOGIC MỚI:
+        // Cho phép hoàn tất nếu: (Đã thanh toán đủ) HOẶC (Đang ở trạng thái READY/PENDING)
+        // Nếu bạn muốn CHỈ khi thanh toán đủ mới được hoàn tất, hãy bỏ điều kiện status.
+        if (!isPaid && order.getStatus() != OrderStatus.READY && order.getStatus() != OrderStatus.PENDING) {
+            throw new BadRequestException("Đơn hàng chưa thanh toán hoặc không ở trạng thái có thể hoàn tất.");
+        }
+
+        // 4. Ràng buộc cứng: Dù trạng thái nào cũng phải trả đủ tiền mới được đóng đơn (An toàn nhất)
+        if (!isPaid) {
+            throw new BadRequestException("Không thể hoàn tất đơn hàng khi chưa nhận đủ tiền thanh toán.");
         }
 
         order.setStatus(OrderStatus.COMPLETED);
         customerOrderRepository.save(order);
+
         log("COMPLETE_ORDER", actor, "ORDER", order.getId(), "Order completed");
         return toResponse(order);
     }

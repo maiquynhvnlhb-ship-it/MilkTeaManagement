@@ -1,25 +1,68 @@
-<div th:replace="layout :: layout">
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:replace="~{admin/admin-layout :: layout}" th:with="title=${product.id != null ? 'Chỉnh sửa Sản phẩm' : 'Thêm Sản phẩm Mới'}, pageTitle='Quản lý Sản phẩm'">
     <div th:fragment="content">
-        <h2 th:text="${product.id} != null ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm'"></h2>
-        <form th:action="@{/admin/products/save}" method="post">
-            <input type="hidden" name="id" th:value="${product.id}" />
-            <div class="mb-3">
-                <label class="form-label">Tên</label>
-                <input class="form-control" name="name" th:value="${product.name}" required />
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h5 class="admin-card-title" th:text="${product.id != null ? 'Chỉnh sửa Sản phẩm' : 'Thêm Sản phẩm Mới'}">Thêm Sản phẩm Mới</h5>
+                    </div>
+                    <div class="p-4">
+                        <form th:action="@{/admin/products/save}" method="post">
+                            <input type="hidden" name="id" th:value="${product.id}" />
+                            
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-semibold text-muted small text-uppercase">Tên sản phẩm <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="name" th:value="${product.name}" required placeholder="VD: Trà sữa trân châu đen" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-muted small text-uppercase">Giá bán (VNĐ) <span class="text-danger">*</span></label>
+                                    <input type="number" step="1000" class="form-control" name="price" th:value="${product.price}" required placeholder="35000" />
+                                </div>
+                            </div>
+                            
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-muted small text-uppercase">Danh mục <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="categoryId" required>
+                                        <option value="" disabled th:selected="${product.category == null}">-- Chọn danh mục --</option>
+                                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${product.category != null and product.category.id == c.id}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-muted small text-uppercase">Trạng thái bán</label>
+                                    <select class="form-select" name="status">
+                                        <option value="AVAILABLE" th:selected="${product.status != null and product.status.name() == 'AVAILABLE'}">Đang bán (Available)</option>
+                                        <option value="OUT_OF_STOCK" th:selected="${product.status != null and product.status.name() == 'OUT_OF_STOCK'}">Hết hàng (Out of stock)</option>
+                                        <option value="HIDDEN" th:selected="${product.status != null and product.status.name() == 'HIDDEN'}">Ẩn (Hidden)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="isTopping" name="topping" th:checked="${product.topping}">
+                                    <label class="form-check-label fw-semibold" for="isTopping">Đây là món Topping (chỉ dùng để thêm vào món chính)</label>
+                                </div>
+                            </div>
+                            
+                            <hr class="text-muted opacity-25">
+                            
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <a class="btn btn-light border" th:href="@{/admin/products}">Hủy bỏ</a>
+                                <button class="btn btn-primary px-4" type="submit"><i class="bi bi-save me-1"></i>Lưu sản phẩm</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Danh mục</label>
-                <select class="form-select" name="categoryId">
-                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${product.category != null and product.category.id == c.id}"></option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Giá</label>
-                <input class="form-control" name="price" th:value="${product.price}" required />
-            </div>
-            <button class="btn btn-primary" type="submit">Lưu</button>
-            <a class="btn btn-secondary" th:href="@{/admin/products}">Hủy</a>
-        </form>
+        </div>
+
     </div>
 </div>
-
+</body>
+</html>

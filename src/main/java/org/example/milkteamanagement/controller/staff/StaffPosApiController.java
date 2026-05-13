@@ -77,8 +77,7 @@ public class StaffPosApiController {
                 }
             }
             boolean paid = order.getTotalAmount() != null && paidTotal.compareTo(order.getTotalAmount()) >= 0;
-            boolean canComplete = paid && (order.getStatus() == org.example.milkteamanagement.entity.enums.OrderStatus.READY
-                    || order.getStatus() == org.example.milkteamanagement.entity.enums.OrderStatus.PENDING);
+            boolean canComplete = paid; // Chỉ cần thanh toán xong là có thể hoàn tất
 
             List<Map<String, Object>> items = order.getItems() == null ? List.of() : order.getItems().stream().map(oi -> {
                 List<Map<String, Object>> toppings = (oi.getToppings() == null) ? List.of() : oi.getToppings().stream().map(t -> {
